@@ -105,7 +105,7 @@ namespace WMS
                 // Define what will be printed
                 Font printFont = new Font("Arial", 16);
                 ev.Graphics.DrawString($"Weight: {currentWeight}", printFont, Brushes.Black, new PointF(100, 100));
-              
+               // ev.Graphics.DrawString($"Barcodescan: {barcodeTable}", printFont, Brushes.Black, new PointF(100, 100));
             };
 
             try
