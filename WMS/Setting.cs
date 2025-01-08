@@ -19,117 +19,13 @@ namespace WMS
             InitializeComponent();
         }
 
-        private void button2_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                // Define the file path (save in the user's documents folder)
-                string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "settings.txt");
-
-                // Collect data from form fields
-                string data = $"Server Address: {txtservername.Text}\n" +
-                              $"Port: {txtport.Text}\n" +
-                              $"Client ID: {txtclientid.Text}\n" +
-                              $"Org ID: {txtorgid.Text}\n" +
-                              $"Warehouse ID: {txtwarehouseid.Text}\n" +
-                              $"Role ID: {txtroleid.Text}\n" +
-                              $"Weight Printer Name: {txtweightprintername.Text}\n" +
-                              $"Server: {textserver.Text}\n" +
-                              $"DataPort: {txtportdata.Text}\n" +
-                              $"User: {txtuser.Text}\n" +
-                              $"Password: {txtpassword.Text}\n" +
-                              $"Database: {txtdatabase.Text}\n" +
-                              $"Scale Port: {txtscaleport.Text}\n" +
-                              $"Bit: {txtbit.Text}\n" +
-                              $"Data Bit: {txtdatabit.Text}\n" +
-                              $"Stop Bit: {txtstopbit.Text}\n" +
-                              $"Parity: {txtparity.Text}\n";
-
-                // Write data to the file
-                File.WriteAllText(filePath, data);
-
-                // Show a success message
-                MessageBox.Show($"Data saved successfully to {filePath}!");
-            }
-            catch (Exception ex)
-            {
-                // Show an error message in case of failure
-                MessageBox.Show($"Failed to save data: {ex.Message}");
-            }
-          
-
-        }
-
      
         private void button1_Click(object sender, EventArgs e)
         {
             this.Close();
         }
 
-        private void Setting_Load(object sender, EventArgs e)
-        {
-            try
-            {
-                // Define the file path (same location as where the file was saved)
-                string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "settings.txt");
-
-                // Check if the file exists
-                if (File.Exists(filePath))
-                {
-                    // Read all lines from the file
-                    string[] lines = File.ReadAllLines(filePath);
-
-                    // Parse each line and assign the values to form fields
-                    foreach (string line in lines)
-                    {
-                        if (line.StartsWith("Server Address:"))
-                            txtservername.Text = line.Replace("Server Address:", "").Trim();
-                        else if (line.StartsWith("Port:"))
-                            txtport.Text = line.Replace("Port:", "").Trim();
-                        else if (line.StartsWith("Client ID:"))
-                            txtclientid.Text = line.Replace("Client ID:", "").Trim();
-                        else if (line.StartsWith("Org ID:"))
-                            txtorgid.Text = line.Replace("Org ID:", "").Trim();
-                        else if (line.StartsWith("Warehouse ID:"))
-                            txtwarehouseid.Text = line.Replace("Warehouse ID:", "").Trim();
-                        else if (line.StartsWith("Role ID:"))
-                            txtroleid.Text = line.Replace("Role ID:", "").Trim();
-                        else if (line.StartsWith("Weight Printer Name:"))
-                            txtweightprintername.Text = line.Replace("Weight Printer Name:", "").Trim();
-                        else if (line.StartsWith("Server:"))
-                            textserver.Text = line.Replace("Server:", "").Trim();
-                        else if (line.StartsWith("DataPort:"))
-                            txtportdata.Text = line.Replace("DataPort:", "").Trim();
-                        else if (line.StartsWith("User:"))
-                            txtuser.Text = line.Replace("User:", "").Trim();
-                        else if (line.StartsWith("Password:"))
-                            txtpassword.Text = line.Replace("Password:", "").Trim();
-                        else if (line.StartsWith("Database:"))
-                            txtdatabase.Text = line.Replace("Database:", "").Trim();
-                        else if (line.StartsWith("Scale Port:"))
-                            txtscaleport.Text = line.Replace("Scale Port:", "").Trim();
-                        else if (line.StartsWith("Bit:"))
-                            txtbit.Text = line.Replace("Bit:", "").Trim();
-                        else if (line.StartsWith("Data Bit:"))
-                            txtdatabit.Text = line.Replace("Data Bit:", "").Trim();
-                        else if (line.StartsWith("Stop Bit:"))
-                            txtstopbit.Text = line.Replace("Stop Bit:", "").Trim();
-                        else if (line.StartsWith("Parity:"))
-                            txtparity.Text = line.Replace("Parity:", "").Trim();
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("Settings file not found. Please save the settings first.");
-                }
-            }
-            catch (Exception ex)
-            {
-                // Show an error message in case of failure
-                MessageBox.Show($"Failed to load settings: {ex.Message}");
-            }
-        }
-
+       
       
 
         private void pictureBox1_Click(object sender, EventArgs e)
@@ -137,6 +33,51 @@ namespace WMS
             MDI mdi = new MDI();
             mdi.Show();
             this.Hide();
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            Properties.Settings.Default["ServerAddress"] =txtservername.Text;
+            Properties.Settings.Default["Port"] = int.Parse(txtport.Text);
+            Properties.Settings.Default["ClientId"] = int.Parse(txtport.Text);
+            Properties.Settings.Default["OrgId"]= int.Parse(txtorgid.Text);
+            Properties.Settings.Default["WarehouseId"]=int.Parse(txtwarehouseid.Text);
+            Properties.Settings.Default["RoleId"]= int.Parse(txtroleid.Text);
+            Properties.Settings.Default["WeightPrinterName"] =txtweightprintername.Text;
+            Properties.Settings.Default["scaleport"] =txtscaleport.Text;
+            Properties.Settings.Default["Bits"]= int.Parse(txtbit.Text);
+            Properties.Settings.Default["Databits"] =int.Parse(txtdatabit.Text);
+            Properties.Settings.Default["Stopbits"] =int.Parse(txtstopbit.Text);
+            Properties.Settings.Default["Parity"] =txtparity.Text;
+            Properties.Settings.Default["Server"] =textserver.Text;
+            Properties.Settings.Default["Serverport"] =int.Parse(txtportdata.Text);
+            Properties.Settings.Default["User"] =txtuser.Text;
+            Properties.Settings.Default["Password"] =txtpassword.Text;
+            Properties.Settings.Default["Database"] =txtdatabase.Text;
+            Properties.Settings.Default.Save();
+
+            MessageBox.Show("Data is save!");
+        }
+
+        private void Setting_Load(object sender, EventArgs e)
+        { 
+          txtservername.Text = (string)Properties.Settings.Default["ServerAddress"];
+            txtport.Text = ((int)Properties.Settings.Default["Port"]).ToString();
+            txtclientid.Text= ((int)Properties.Settings.Default["ClientId"]).ToString();
+            txtorgid.Text= ((int)Properties.Settings.Default["OrgId"]).ToString();
+            txtwarehouseid.Text= ((int)Properties.Settings.Default["WarehouseId"]).ToString();
+            txtroleid.Text= ((int)Properties.Settings.Default["RoleId"]).ToString();
+            txtweightprintername.Text= (string)Properties.Settings.Default["WeightPrinterName"];
+            txtscaleport.Text= (string)Properties.Settings.Default["scaleport"];
+            txtbit.Text= ((int)Properties.Settings.Default["Bits"]).ToString();
+            txtdatabit.Text= ((int)Properties.Settings.Default["Databits"]).ToString();
+            txtstopbit.Text= ((int)Properties.Settings.Default["Stopbits"]).ToString();
+            txtparity.Text= (string)Properties.Settings.Default["Parity"];
+            textserver.Text = (string)Properties.Settings.Default["Server"];
+            txtportdata.Text= ((int)Properties.Settings.Default["Serverport"]).ToString();
+            txtuser.Text= (string)Properties.Settings.Default["User"];
+            txtpassword.Text = (string)Properties.Settings.Default["Password"];
+            txtdatabase.Text = (string)Properties.Settings.Default["Database"];
         }
     }
 }

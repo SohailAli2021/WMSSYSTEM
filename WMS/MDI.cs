@@ -3,6 +3,9 @@ using System.Data;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Drawing.Printing;
+using PdfSharp.Drawing;
+using PdfSharp.Pdf;
+using System.Diagnostics;
 
 namespace WMS
 {
@@ -96,35 +99,75 @@ namespace WMS
             this.Hide();
         }
 
-
         private void button1_Click(object sender, EventArgs e)
         {
-            PrintDocument printDocument = new PrintDocument();
-            printDocument.PrintPage += (s, ev) =>
-            {
-                // Define what will be printed
-                Font printFont = new Font("Arial", 16);
-                ev.Graphics.DrawString($"Weight: {currentWeight}", printFont, Brushes.Black, new PointF(100, 100));
-               // ev.Graphics.DrawString($"Barcodescan: {barcodeTable}", printFont, Brushes.Black, new PointF(100, 100));
-            };
-
             try
             {
-                // Show a print dialog to select the printer
-                PrintDialog printDialog = new PrintDialog();
-                printDialog.Document = printDocument;
+                // Generate the PDF
+                string pdfFilePath = GeneratePdf();
 
-                if (printDialog.ShowDialog() == DialogResult.OK)
-                {
-                    // Print the document
-                    printDocument.Print();
-                }
+                // Print the PDF
+                PrintPdf(pdfFilePath);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred while printing: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
+        private string GeneratePdf()
+        {
+            // Define the file path for the PDF
+            string filePath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GeneratedDocument.pdf");
+
+            // Create a new PDF document
+            PdfDocument document = new PdfDocument();
+            document.Info.Title = "Generated Document";
+
+            // Create a page
+            PdfPage page = document.AddPage();
+            XGraphics gfx = XGraphics.FromPdfPage(page);
+            XFont font = new XFont("Arial", 16);
+            // Draw content on the PDF
+           
+            // Draw table headers
+            gfx.DrawString($"Weight: {txtweight.Text}", font, XBrushes.Black, new XPoint(100, 100));
+            gfx.DrawString($"Barcode: {txtjoborderbarcode.Text}", font, XBrushes.Black, new XPoint(250, 100));
+           
+            int yPosition = 130; // Start position for rows
+
+            // Iterate through the DataTable and add rows
+            foreach (DataRow row in barcodeTable.Rows)
+            {
+                string weight = row["Live Weight"].ToString();
+                string barcode = row["Scanned Barcode"].ToString();
+               
+                gfx.DrawString(weight, font, XBrushes.Black, new XPoint(100, yPosition));
+                gfx.DrawString(barcode, font, XBrushes.Black, new XPoint(250, yPosition));
+
+                yPosition += 30; // Move to the next row
+            }
+
+            // Save the document
+            document.Save(filePath);
+
+            MessageBox.Show($"PDF generated successfully at {filePath}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            return filePath;
+        }
+
+
+        private void PrintPdf(string filePath)
+        {
+            // Use the default PDF viewer to print the file
+            Process printProcess = new Process();
+            printProcess.StartInfo.FileName = filePath;
+            printProcess.StartInfo.Verb = "print";
+            printProcess.StartInfo.CreateNoWindow = false;
+            printProcess.Start();
+        }
+
+        
     }
 }
+
