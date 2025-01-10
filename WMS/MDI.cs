@@ -6,6 +6,9 @@ using System.Drawing.Printing;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using System.Diagnostics;
+using Npgsql;
+using System.Xml.Linq;
+using System.Collections.Generic;
 
 namespace WMS
 {
@@ -19,78 +22,127 @@ namespace WMS
         {
             InitializeComponent();
 
-            // Initialize the DataTable to store barcode data
+            // Initialize barcodeTable
             barcodeTable = new DataTable();
             barcodeTable.Columns.Add("Live Weight");
             barcodeTable.Columns.Add("Scanned Barcode");
 
-            // Initialize the BindingSource with the DataTable
+            // Bind to DataGridView
             bindingSource = new BindingSource();
             bindingSource.DataSource = barcodeTable;
-
-            // Bind the DataGridView to the BindingSource
             dataGridView1.DataSource = bindingSource;
 
-            // Ensure KeyPress event is connected
-            txtjoborderbarcode.KeyPress += txtBarcode_KeyPress;
-            txtweight.KeyPress += txtweight_KeyPress;
-
-            // Optionally, set the column width to make sure it's visible
-            dataGridView1.Columns[0].Width = 100;
-            dataGridView1.Columns[1].Width = 100;
+            txtweight.KeyPress += new KeyPressEventHandler(txtweight_KeyPress);
         }
+
+        NpgsqlConnection con = new NpgsqlConnection("Server=localhost;Port=5432;Database=WMS;User Id=postgres;password=1234;");
+
+
+        void Gridfill()
+        {
+            con.Open();
+            NpgsqlCommand cmd = new NpgsqlCommand();
+            cmd.Connection = con;
+            cmd.CommandType = CommandType.Text;
+            cmd.CommandText = "select * from weightmachine_tbl";
+            NpgsqlDataReader dr = cmd.ExecuteReader();
+            if (dr.HasRows)
+            {
+                DataTable dt = new DataTable();
+                dt.Load(dr);
+                dataGridView1.DataSource = dt;
+            }
+            cmd.Dispose();
+            con.Close();
+        }
+
 
         private void txtweight_KeyPress(object sender, KeyPressEventArgs e)
         {
-            // If the Enter key is pressed, process the weight input
-            if (e.KeyChar == (char)Keys.Enter)
+            try
             {
-                string weight = txtweight.Text.Trim();
+                if (e.KeyChar == (char)13) // Enter key
+                {
+                    Console.WriteLine("Enter key detected.");
 
-                // Only add the weight if it's not empty
-                if (!string.IsNullOrEmpty(weight))
-                {
-                    currentWeight = weight; // Temporarily store the weight
-                    txtweight.Clear(); // Clear the TextBox for the next input
-                    txtjoborderbarcode.Focus(); // Move focus to the barcode TextBox
+                    // Validate weight input
+                    string weight = txtweight.Text.Trim();
+                    if (string.IsNullOrEmpty(weight))
+                    {
+                        MessageBox.Show("Please enter a valid weight.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    if (!int.TryParse(weight, out int parsedWeight))
+                    {
+                        MessageBox.Show("Weight must be a valid number.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    Console.WriteLine($"Parsed Weight: {parsedWeight}");
+
+                    // Attempt database insertion
+                    using (NpgsqlConnection con = new NpgsqlConnection("Server=localhost;Port=5432;Database=WMS;User Id=postgres;Password=1234;"))
+                    {
+                        try
+                        {
+                            con.Open();
+                            Console.WriteLine("Database connection opened successfully.");
+
+                              string sql = "INSERT INTO weightmachine_tbl(live_weight, job_order_date) VALUES(@weight, NOW());";
+                            
+
+
+                            using (var command = new NpgsqlCommand(sql, con))
+                            {
+                                command.Parameters.AddWithValue("@weight", NpgsqlTypes.NpgsqlDbType.Integer, parsedWeight);
+                                command.Parameters.AddWithValue("@jobOrderDate", DateTime.Now); // Current date/time
+
+                                int rowsAffected = command.ExecuteNonQuery();
+                                Console.WriteLine($"Rows affected: {rowsAffected}");
+
+                                if (rowsAffected > 0)
+                                {
+                                    MessageBox.Show("Weight inserted successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                    txtweight.Clear();
+                                    txtjoborderbarcode.Focus();
+                                    Gridfill();
+                                }
+                                else
+                                {
+                                    MessageBox.Show("No rows were inserted. Please try again.", "Insert Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                }
+                            }
+                        }
+                        catch (Exception dbEx)
+                        {
+                            Console.WriteLine($"Database Error: {dbEx}");
+                            MessageBox.Show($"Database error: {dbEx.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
                 }
-                else
-                {
-                    MessageBox.Show("Please enter a valid weight.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"General Error: {ex}");
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void txtBarcode_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            // If the Enter key is pressed, process the scanned barcode
-            if (e.KeyChar == (char)Keys.Enter)
-            {
-                string scannedBarcode = txtjoborderbarcode.Text.Trim();
 
-                // Only add the barcode if it's not empty and weight is already entered
-                if (!string.IsNullOrEmpty(scannedBarcode))
-                {
-                    if (!string.IsNullOrEmpty(currentWeight))
-                    {
-                        // Add the weight and barcode to the DataTable
-                        barcodeTable.Rows.Add(currentWeight, scannedBarcode);
 
-                        // Clear the temporary weight and TextBox for the next input
-                        currentWeight = "";
-                        txtjoborderbarcode.Clear();
 
-                        // Refresh the DataGridView to reflect changes
-                        dataGridView1.Refresh();
-                        txtweight.Focus(); // Move focus back to the weight TextBox
-                    }
-                    else
-                    {
-                        MessageBox.Show("Please enter the weight before scanning the barcode.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
-                }
-            }
-        }
+
+
+
+
+
+
+
+
+
+
+
 
         private void button2_Click(object sender, EventArgs e)
         {
@@ -99,75 +151,13 @@ namespace WMS
             this.Hide();
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                // Generate the PDF
-                string pdfFilePath = GeneratePdf();
-
-                // Print the PDF
-                PrintPdf(pdfFilePath);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private string GeneratePdf()
-        {
-            // Define the file path for the PDF
-            string filePath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GeneratedDocument.pdf");
-
-            // Create a new PDF document
-            PdfDocument document = new PdfDocument();
-            document.Info.Title = "Generated Document";
-
-            // Create a page
-            PdfPage page = document.AddPage();
-            XGraphics gfx = XGraphics.FromPdfPage(page);
-            XFont font = new XFont("Arial", 16);
-            // Draw content on the PDF
-           
-            // Draw table headers
-            gfx.DrawString($"Weight: {txtweight.Text}", font, XBrushes.Black, new XPoint(100, 100));
-            gfx.DrawString($"Barcode: {txtjoborderbarcode.Text}", font, XBrushes.Black, new XPoint(250, 100));
-           
-            int yPosition = 130; // Start position for rows
-
-            // Iterate through the DataTable and add rows
-            foreach (DataRow row in barcodeTable.Rows)
-            {
-                string weight = row["Live Weight"].ToString();
-                string barcode = row["Scanned Barcode"].ToString();
-               
-                gfx.DrawString(weight, font, XBrushes.Black, new XPoint(100, yPosition));
-                gfx.DrawString(barcode, font, XBrushes.Black, new XPoint(250, yPosition));
-
-                yPosition += 30; // Move to the next row
-            }
-
-            // Save the document
-            document.Save(filePath);
-
-            MessageBox.Show($"PDF generated successfully at {filePath}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-            return filePath;
-        }
-
-
-        private void PrintPdf(string filePath)
-        {
-            // Use the default PDF viewer to print the file
-            Process printProcess = new Process();
-            printProcess.StartInfo.FileName = filePath;
-            printProcess.StartInfo.Verb = "print";
-            printProcess.StartInfo.CreateNoWindow = false;
-            printProcess.Start();
-        }
-
         
+     
+
+        private void MDI_Load(object sender, EventArgs e)
+        {
+            Gridfill();
+        }
     }
 }
 
