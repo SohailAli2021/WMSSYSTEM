@@ -23,16 +23,13 @@ namespace WMS
             InitializeComponent();
 
             // Initialize barcodeTable
-            barcodeTable = new DataTable();
-            barcodeTable.Columns.Add("Live Weight");
-            barcodeTable.Columns.Add("Scanned Barcode");
-
+            
             // Bind to DataGridView
             bindingSource = new BindingSource();
             bindingSource.DataSource = barcodeTable;
             dataGridView1.DataSource = bindingSource;
-
-            txtweight.KeyPress += new KeyPressEventHandler(txtweight_KeyPress);
+txtjoborderbarcode.KeyPress += new KeyPressEventHandler(txtjoborderbarcode_KeyPress);
+           
         }
 
         NpgsqlConnection con = new NpgsqlConnection("Server=localhost;Port=5432;Database=WMS;User Id=postgres;password=1234;");
@@ -44,7 +41,7 @@ namespace WMS
             NpgsqlCommand cmd = new NpgsqlCommand();
             cmd.Connection = con;
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "select * from weightmachine_tbl";
+            cmd.CommandText = "select * from machine_weight";
             NpgsqlDataReader dr = cmd.ExecuteReader();
             if (dr.HasRows)
             {
@@ -57,19 +54,27 @@ namespace WMS
         }
 
 
-        private void txtweight_KeyPress(object sender, KeyPressEventArgs e)
+        private void txtjoborderbarcode_KeyPress(object sender, KeyPressEventArgs e)
         {
             try
             {
                 if (e.KeyChar == (char)13) // Enter key
                 {
-                    Console.WriteLine("Enter key detected.");
+                    Console.WriteLine("Enter key detected in txtweight.");
 
                     // Validate weight input
                     string weight = txtweight.Text.Trim();
+                    string barcode = txtjoborderbarcode.Text.Trim();
+
                     if (string.IsNullOrEmpty(weight))
                     {
                         MessageBox.Show("Please enter a valid weight.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    if (string.IsNullOrEmpty(barcode))
+                    {
+                        MessageBox.Show("Please enter a valid barcode.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         return;
                     }
 
@@ -80,6 +85,7 @@ namespace WMS
                     }
 
                     Console.WriteLine($"Parsed Weight: {parsedWeight}");
+                    Console.WriteLine($"Barcode: {barcode}");
 
                     // Attempt database insertion
                     using (NpgsqlConnection con = new NpgsqlConnection("Server=localhost;Port=5432;Database=WMS;User Id=postgres;Password=1234;"))
@@ -89,22 +95,21 @@ namespace WMS
                             con.Open();
                             Console.WriteLine("Database connection opened successfully.");
 
-                              string sql = "INSERT INTO weightmachine_tbl(live_weight, job_order_date) VALUES(@weight, NOW());";
-                            
-
+                            string sql = "INSERT INTO machine_weight(live_weight, scanned_barcode) VALUES(@weight, @barcode);";
 
                             using (var command = new NpgsqlCommand(sql, con))
                             {
-                                command.Parameters.AddWithValue("@weight", NpgsqlTypes.NpgsqlDbType.Integer, parsedWeight);
-                                command.Parameters.AddWithValue("@jobOrderDate", DateTime.Now); // Current date/time
+                                command.Parameters.AddWithValue("@weight", NpgsqlTypes.NpgsqlDbType.Bigint, parsedWeight);
+                                command.Parameters.AddWithValue("@barcode", NpgsqlTypes.NpgsqlDbType.Varchar, barcode);
 
                                 int rowsAffected = command.ExecuteNonQuery();
                                 Console.WriteLine($"Rows affected: {rowsAffected}");
 
                                 if (rowsAffected > 0)
                                 {
-                                    MessageBox.Show("Weight inserted successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                    MessageBox.Show("Weight and Barcode inserted successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                                     txtweight.Clear();
+                                    txtjoborderbarcode.Clear();
                                     txtjoborderbarcode.Focus();
                                     Gridfill();
                                 }
@@ -128,36 +133,20 @@ namespace WMS
                 MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            Setting setting = new Setting();
-            setting.Show();
-            this.Hide();
-        }
-
         
-     
-
         private void MDI_Load(object sender, EventArgs e)
         {
             Gridfill();
         }
-    }
-}
 
+      
+
+        private void pictureBox1_Click(object sender, EventArgs e)
+        {
+            Setting setting = new Setting();
+            setting.Show();
+            this.Hide();
+
+        }
+    }
+} 
